@@ -219,4 +219,5 @@ This project focuses on API quality engineering using Postman, JavaScript, and N
 
 ## 👨‍💻 Author
 
-API automation portfolio project built with Postman, JavaScript, and Newman.
+**Tawsif Ahmed**  
+SQA Engineer | API Automation | Postman & Newman
