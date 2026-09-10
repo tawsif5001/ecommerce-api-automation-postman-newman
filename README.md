@@ -190,7 +190,7 @@ The latest Newman run completed with four assertion failures:
 | Average response time | 495 ms |
 | Total duration | 16.7 seconds |
 
-Detailed report: [Open the Newman HTML report](reports/ecom-api-report.html)
+Detailed report: [Open the Newman HTML report](https://tawsif5001.github.io/ecommerce-api-automation-postman-newman/reports/ecom-api-report.html)
 
 The current failures are:
 
