@@ -1,0 +1,1265 @@
+{
+  "info": {
+    "_postman_id": "7d24cd40-2bb3-4ba5-834e-990e29464777",
+    "name": "eCom_Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "50194856"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const baseUrl = pm.variables.get('base_url');",
+          "pm.test('base_url is configured', () => {",
+          "    pm.expect(baseUrl, 'base_url is required').to.be.a('string').and.not.empty;",
+          "});",
+          "",
+          "pm.test('Request URL is resolved', () => {",
+          "    pm.expect(pm.variables.replaceIn(pm.request.url.toString())).to.match(/^https?:\\/\\//);",
+          "});",
+          "",
+          "pm.test('Content-Type is present for JSON requests', () => {",
+          "    if (['POST', 'PUT', 'PATCH'].includes(pm.request.method)) {",
+          "        const contentType = pm.request.headers.get('Content-Type');",
+          "        pm.expect(contentType || 'application/json').to.include('application/json');",
+          "    }",
+          "});"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const responseText = pm.response.text();",
+          "let body = null;",
+          "let isJson = false;",
+          "try { body = pm.response.json(); isJson = true; } catch (error) { body = null; }",
+          "const requestName = pm.info.requestName;",
+          "const requestPath = pm.request.url.getPath();",
+          "const assertProduct = (product) => {",
+          "    pm.expect(product).to.be.an('object');",
+          "    pm.expect(product.id).to.be.a('number').and.above(0);",
+          "    pm.expect(product.title).to.be.a('string').and.not.empty;",
+          "    pm.expect(product.price).to.be.a('number').and.at.least(0);",
+          "    pm.expect(product.stock).to.be.a('number').and.at.least(0);",
+          "    if (product.rating !== undefined) pm.expect(product.rating).to.be.within(0, 5);",
+          "};",
+          "const assertCart = (cart) => {",
+          "    pm.expect(cart).to.be.an('object');",
+          "    pm.expect(cart.id).to.be.a('number').and.above(0);",
+          "    pm.expect(cart.userId).to.be.a('number').and.above(0);",
+          "    pm.expect(cart.products).to.be.an('array');",
+          "    pm.expect(cart.total).to.be.a('number').and.at.least(0);",
+          "    cart.products.forEach((item) => {",
+          "        pm.expect(item.id).to.be.a('number').and.above(0);",
+          "        pm.expect(item.quantity).to.be.a('number').and.above(0);",
+          "        pm.expect(item.quantity % 1).to.eql(0);",
+          "        pm.expect(item.price).to.be.a('number').and.at.least(0);",
+          "    });",
+          "};",
+          "",
+          "pm.test('Response time is below 5000 ms', () => {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('HTTP status is a valid API response', () => {",
+          "    pm.expect(pm.response.code).to.be.within(200, 499);",
+          "});",
+          "",
+          "pm.test('Successful response is JSON', () => {",
+          "    if (pm.response.code >= 200 && pm.response.code < 300) pm.expect(isJson, 'Expected JSON response').to.eql(true);",
+          "});",
+          "",
+          "pm.test('Error response has a useful message', () => {",
+          "    if (pm.response.code >= 400) {",
+          "        pm.expect(isJson, 'Error response should be JSON').to.eql(true);",
+          "        const message = body && (body.message || body.error || body.description);",
+          "        pm.expect(String(message || responseText).trim()).to.not.be.empty;",
+          "    }",
+          "});",
+          "",
+          "if (isJson && body && typeof body === 'object') {",
+          "    if (body.accessToken) pm.environment.set('accessToken', body.accessToken);",
+          "    if (body.refreshToken) pm.environment.set('refreshToken', body.refreshToken);",
+          "    if (body.id !== undefined && requestPath.includes('/auth/')) pm.environment.set('userId', String(body.id));",
+          "    if (body.id !== undefined && requestPath.includes('/products')) pm.environment.set('productId', String(body.id));",
+          "    if (body.id !== undefined && requestPath.includes('/carts')) pm.environment.set('cartId', String(body.id));",
+          "    if (Array.isArray(body.products) && body.products.length > 0) {",
+          "        const firstProduct = body.products[0];",
+          "        if (firstProduct && firstProduct.id !== undefined) pm.environment.set('productId', String(firstProduct.id));",
+          "    }",
+          "    if (Array.isArray(body.carts) && body.carts.length > 0 && body.carts[0].id !== undefined) pm.environment.set('cartId', String(body.carts[0].id));",
+          "}",
+          "",
+          "if (pm.response.code >= 200 && pm.response.code < 300 && isJson) {",
+          "    if (requestPath.includes('/products') && body.products && Array.isArray(body.products)) {",
+          "        pm.test('Every returned product satisfies business rules', () => body.products.forEach(assertProduct));",
+          "    }",
+          "    if (requestPath.includes('/products/') && body.id !== undefined && body.title !== undefined) {",
+          "        pm.test('Product resource schema and business rules are valid', () => assertProduct(body));",
+          "    }",
+          "    if (requestPath.includes('/carts') && body.carts && Array.isArray(body.carts)) {",
+          "        pm.test('Every returned cart satisfies business rules', () => body.carts.forEach(assertCart));",
+          "    }",
+          "    if (requestPath.includes('/carts/') && body.id !== undefined && body.products !== undefined) {",
+          "        pm.test('Cart resource schema and business rules are valid', () => assertCart(body));",
+          "    }",
+          "    if (requestPath.endsWith('/products') && pm.request.method === 'GET') {",
+          "        pm.test('Products collection contract is valid', () => {",
+          "            pm.expect(body).to.have.property('products').that.is.an('array');",
+          "            pm.expect(body).to.have.property('total').that.is.a('number');",
+          "        });",
+          "    }",
+          "    if (requestPath.endsWith('/carts') && pm.request.method === 'GET') {",
+          "        pm.test('Carts collection contract is valid', () => {",
+          "            pm.expect(body).to.have.property('carts').that.is.an('array');",
+          "            pm.expect(body).to.have.property('total').that.is.a('number');",
+          "        });",
+          "    }",
+          "    if (requestName.toLowerCase().includes('categories')) {",
+          "        pm.test('Categories response is a non-empty array', () => {",
+          "            const categories = Array.isArray(body) ? body : body.categories;",
+          "            pm.expect(categories).to.be.an('array').and.not.empty;",
+          "        });",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "let jsonData;",
+                  "try {",
+                  "    jsonData = pm.response.json();",
+                  "} catch (e) {",
+                  "    jsonData = null;",
+                  "}",
+                  "",
+                  "const isNegativeLoginResponse = [400, 401].includes(pm.response.code);",
+                  "",
+                  "if (jsonData && jsonData.accessToken) {",
+                  "    pm.environment.set('Token', jsonData.accessToken);",
+                  "}",
+                  "",
+                  "if (!isNegativeLoginResponse) {",
+                  "    pm.test('Status code is 200', () => {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "",
+                  "    pm.test('Response time is below 1000 ms', () => {",
+                  "        pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "    });",
+                  "",
+                  "    pm.test('Response body is valid JSON', () => {",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "    });",
+                  "",
+                  "    pm.test('accessToken exists and is not empty', () => {",
+                  "        pm.expect(jsonData).to.have.property('accessToken');",
+                  "        pm.expect(jsonData.accessToken).to.be.a('string');",
+                  "        pm.expect(jsonData.accessToken.trim()).to.not.be.empty;",
+                  "    });",
+                  "",
+                  "    pm.test('refreshToken exists and is not empty', () => {",
+                  "        pm.expect(jsonData).to.have.property('refreshToken');",
+                  "        pm.expect(jsonData.refreshToken).to.be.a('string');",
+                  "        pm.expect(jsonData.refreshToken.trim()).to.not.be.empty;",
+                  "    });",
+                  "",
+                  "    const emailPattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}$';",
+                  "    const imageUrlPattern = '^https:\\\\/\\\\/[^\\\\s/$.?#].[^\\\\s]*$';",
+                  "",
+                  "    const loginResponseSchema = {",
+                  "        type: 'object',",
+                  "        required: ['accessToken', 'refreshToken', 'id', 'username', 'email', 'firstName', 'lastName', 'gender', 'image'],",
+                  "        properties: {",
+                  "            accessToken: { type: 'string', minLength: 1 },",
+                  "            refreshToken: { type: 'string', minLength: 1 },",
+                  "            id: { type: 'number' },",
+                  "            username: { type: 'string', minLength: 1 },",
+                  "            email: { type: 'string', pattern: emailPattern, minLength: 3 },",
+                  "            firstName: { type: 'string', minLength: 1 },",
+                  "            lastName: { type: 'string', minLength: 1 },",
+                  "            gender: { type: 'string', minLength: 1 },",
+                  "            image: { type: 'string', pattern: imageUrlPattern, minLength: 1 }",
+                  "        },",
+                  "        additionalProperties: true",
+                  "    };",
+                  "",
+                  "    pm.test('Login response schema is valid', () => {",
+                  "        pm.response.to.have.jsonSchema(loginResponseSchema);",
+                  "    });",
+                  "",
+                  "    pm.test('Email format is valid', () => {",
+                  "        pm.expect(jsonData).to.have.property('email');",
+                  "        pm.expect(jsonData.email).to.be.a('string');",
+                  "        pm.expect(jsonData.email.trim()).to.not.be.empty;",
+                  "        pm.expect(jsonData.email).to.match(new RegExp(emailPattern));",
+                  "    });",
+                  "",
+                  "    pm.test('Image URL is valid', () => {",
+                  "        pm.expect(jsonData).to.have.property('image');",
+                  "        pm.expect(jsonData.image).to.be.a('string');",
+                  "        pm.expect(jsonData.image.trim()).to.not.be.empty;",
+                  "        pm.expect(jsonData.image).to.match(new RegExp(imageUrlPattern));",
+                  "        pm.expect(jsonData.image.startsWith('https://')).to.be.true;",
+                  "    });",
+                  "}",
+                  "",
+                  "if (isNegativeLoginResponse) {",
+                  "    pm.test('Negative login returns expected failure status', () => {",
+                  "        pm.expect(pm.response.code).to.be.oneOf([400, 401]);",
+                  "    });",
+                  "",
+                  "    pm.test('Negative login response contains error message', () => {",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "        pm.expect(jsonData.message || jsonData.error).to.exist;",
+                  "        pm.expect(String(jsonData.message || jsonData.error).trim()).to.not.be.empty;",
+                  "    });",
+                  "",
+                  "    pm.test('Negative login response does not contain tokens', () => {",
+                  "        pm.expect(jsonData && jsonData.accessToken).to.not.exist;",
+                  "        pm.expect(jsonData && jsonData.refreshToken).to.not.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.test('base_url variable is defined', () => {",
+                  "    pm.expect(pm.variables.get('base_url')).to.exist;",
+                  "    pm.expect(pm.variables.get('base_url')).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('Request method is POST', () => {",
+                  "    pm.expect(pm.request.method).to.eql('POST');",
+                  "});",
+                  "",
+                  "pm.test('Request URL targets /auth/login', () => {",
+                  "    const resolvedUrl = pm.variables.replaceIn(pm.request.url.toString());",
+                  "    pm.expect(resolvedUrl).to.include('/auth/login');",
+                  "});",
+                  "",
+                  "pm.test('Request body is present and raw JSON', () => {",
+                  "    pm.expect(pm.request.body).to.exist;",
+                  "    pm.expect(pm.request.body.mode).to.eql('raw');",
+                  "    pm.expect(pm.request.body.raw).to.exist;",
+                  "    pm.expect(pm.request.body.raw.trim()).to.not.be.empty;",
+                  "});",
+                  "",
+                  "let requestData;",
+                  "pm.test('Request body is valid JSON', () => {",
+                  "    requestData = JSON.parse(pm.request.body.raw);",
+                  "    pm.expect(requestData).to.be.an('object');",
+                  "});",
+                  "",
+                  "pm.test('Username is provided', () => {",
+                  "    pm.expect(requestData.username).to.exist;",
+                  "    pm.expect(String(requestData.username).trim()).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('Password is provided', () => {",
+                  "    pm.expect(requestData.password).to.exist;",
+                  "    pm.expect(String(requestData.password).trim()).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"emilys\",\r\n    \"password\": \"emilyspass\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Refresh token status is 200', () => pm.response.to.have.status(200));","pm.test('Refresh token response contains accessToken', () => { pm.expect(body.accessToken).to.be.a('string').and.not.empty; pm.environment.set('accessToken', body.accessToken); });"]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"refreshToken\":\"{{refreshToken}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.test('base_url variable is defined', () => {",
+                  "    pm.expect(pm.variables.get('base_url')).to.exist;",
+                  "    pm.expect(pm.variables.get('base_url')).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('Token variable is defined', () => {",
+                  "    pm.expect(pm.variables.get('Token')).to.exist;",
+                  "    pm.expect(String(pm.variables.get('Token')).trim()).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('Request method is GET', () => {",
+                  "    pm.expect(pm.request.method).to.eql('GET');",
+                  "});",
+                  "",
+                  "pm.test('Request URL targets /auth/me', () => {",
+                  "    const resolvedUrl = pm.variables.replaceIn(pm.request.url.toString());",
+                  "    pm.expect(resolvedUrl).to.include('/auth/me');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "let jsonData;",
+                  "try {",
+                  "    jsonData = pm.response.json();",
+                  "} catch (e) {",
+                  "    jsonData = null;",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is below 1000 ms', () => {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Response body is valid JSON', () => {",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "});",
+                  "",
+                  "pm.test('Profile id is present and numeric', () => {",
+                  "    pm.expect(jsonData.id).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test('Username is present', () => {",
+                  "    pm.expect(jsonData.username).to.be.a('string');",
+                  "    pm.expect(jsonData.username.trim()).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('First name and last name are present', () => {",
+                  "    pm.expect(jsonData.firstName).to.be.a('string');",
+                  "    pm.expect(jsonData.lastName).to.be.a('string');",
+                  "});",
+                  "",
+                  "pm.test('Email format is valid', () => {",
+                  "    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$/;",
+                  "    pm.expect(jsonData.email).to.be.a('string');",
+                  "    pm.expect(jsonData.email).to.match(emailPattern);",
+                  "});",
+                  "",
+                  "pm.test('Image URL is valid', () => {",
+                  "    const urlPattern = /^https?:\\/\\/(?:[^\\s/?#]+)(?:[^\\s]*)$/;",
+                  "    pm.expect(jsonData.image).to.be.a('string');",
+                  "    pm.expect(jsonData.image).to.match(urlPattern);",
+                  "});",
+                  "",
+                  "const profileSchema = {",
+                  "    type: 'object',",
+                  "    required: ['id', 'firstName', 'lastName', 'age', 'gender', 'email', 'username', 'image', 'hair', 'address', 'company', 'crypto', 'role'],",
+                  "    properties: {",
+                  "        id: { type: 'number' },",
+                  "        firstName: { type: 'string' },",
+                  "        lastName: { type: 'string' },",
+                  "        age: { type: 'number' },",
+                  "        gender: { type: 'string' },",
+                  "        email: { type: 'string', pattern: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}$' },",
+                  "        username: { type: 'string' },",
+                  "        image: { type: 'string', pattern: '^https?:\\\\/\\\\/(?:[^\\\\s/?#]+)(?:[^\\\\s]*)$' },",
+                  "        hair: {",
+                  "            type: 'object',",
+                  "            required: ['color', 'type'],",
+                  "            properties: {",
+                  "                color: { type: 'string' },",
+                  "                type: { type: 'string' }",
+                  "            }",
+                  "        },",
+                  "        address: {",
+                  "            type: 'object',",
+                  "            required: ['address', 'city', 'state', 'postalCode', 'country'],",
+                  "            properties: {",
+                  "                address: { type: 'string' },",
+                  "                city: { type: 'string' },",
+                  "                state: { type: 'string' },",
+                  "                postalCode: { type: 'string' },",
+                  "                country: { type: 'string' }",
+                  "            }",
+                  "        },",
+                  "        company: {",
+                  "            type: 'object',",
+                  "            required: ['department', 'name', 'title', 'address'],",
+                  "            properties: {",
+                  "                department: { type: 'string' },",
+                  "                name: { type: 'string' },",
+                  "                title: { type: 'string' },",
+                  "                address: {",
+                  "                    type: 'object',",
+                  "                    required: ['address', 'city', 'state', 'postalCode', 'country'],",
+                  "                    properties: {",
+                  "                        address: { type: 'string' },",
+                  "                        city: { type: 'string' },",
+                  "                        state: { type: 'string' },",
+                  "                        postalCode: { type: 'string' },",
+                  "                        country: { type: 'string' }",
+                  "                    }",
+                  "                }",
+                  "            }",
+                  "        },",
+                  "        crypto: {",
+                  "            type: 'object',",
+                  "            required: ['coin', 'wallet', 'network'],",
+                  "            properties: {",
+                  "                coin: { type: 'string' },",
+                  "                wallet: { type: 'string' },",
+                  "                network: { type: 'string' }",
+                  "            }",
+                  "        },",
+                  "        role: { type: 'string' }",
+                  "    }",
+                  "};",
+                  "",
+                  "pm.test('Profile response schema is valid', () => {",
+                  "    pm.response.to.have.jsonSchema(profileSchema);",
+                  "});",
+                  "",
+                  "if ([401, 403].includes(pm.response.code)) {",
+                  "    pm.test('Unauthorized profile access returns 401 or 403', () => {",
+                  "        pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "    });",
+                  "",
+                  "    pm.test('Unauthorized response body is valid JSON if present', () => {",
+                  "        if (pm.response.text().trim()) {",
+                  "            pm.expect(jsonData).to.be.an('object');",
+                  "        } else {",
+                  "            pm.expect(pm.response.text()).to.eql('');",
+                  "        }",
+                  "    });",
+                  "",
+                  "    pm.test('Unauthorized response contains non-empty error or message field', () => {",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "        pm.expect(jsonData).to.satisfy((body) => {",
+                  "            const value = body && (body.message ?? body.error);",
+                  "            return typeof value === 'string' && value.trim().length > 0;",
+                  "        });",
+                  "    });",
+                  "",
+                  "    pm.test('Unauthorized response does not expose profile id', () => {",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "        pm.expect(jsonData).to.not.have.property('id');",
+                  "    });",
+                  "",
+                  "    pm.test('Unauthorized response does not expose username', () => {",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "        pm.expect(jsonData).to.not.have.property('username');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.test('base_url variable is defined', () => {",
+                  "    const baseUrl = pm.variables.get('base_url');",
+                  "    pm.expect(baseUrl, 'base_url variable should exist').to.exist;",
+                  "    pm.expect(String(baseUrl).trim(), 'base_url variable should not be empty').to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('Request method is GET', () => {",
+                  "    pm.expect(pm.request.method).to.eql('GET');",
+                  "});",
+                  "",
+                  "pm.test('Request URL targets /products', () => {",
+                  "    const resolvedUrl = pm.variables.replaceIn(pm.request.url.toString());",
+                  "    pm.expect(resolvedUrl).to.include('/products');",
+                  "});",
+                  "",
+                  "const queryParams = pm.request.url.query.toObject();",
+                  "",
+                  "if (queryParams.limit !== undefined) {",
+                  "    pm.test('limit query param is a positive integer', () => {",
+                  "        const limit = Number(queryParams.limit);",
+                  "        pm.expect(Number.isNaN(limit), 'limit must be numeric').to.eql(false);",
+                  "        pm.expect(limit % 1, 'limit must be an integer').to.eql(0);",
+                  "        pm.expect(limit, 'limit must be greater than 0').to.be.above(0);",
+                  "    });",
+                  "}",
+                  "",
+                  "if (queryParams.skip !== undefined) {",
+                  "    pm.test('skip query param is a non-negative integer', () => {",
+                  "        const skip = Number(queryParams.skip);",
+                  "        pm.expect(Number.isNaN(skip), 'skip must be numeric').to.eql(false);",
+                  "        pm.expect(skip % 1, 'skip must be an integer').to.eql(0);",
+                  "        pm.expect(skip, 'skip must be 0 or greater').to.be.at.least(0);",
+                  "    });",
+                  "}",
+                  "",
+                  "if (queryParams.order !== undefined) {",
+                  "    pm.test('order query param is valid', () => {",
+                  "        pm.expect(['asc', 'desc']).to.include(String(queryParams.order).toLowerCase());",
+                  "    });",
+                  "}",
+                  "",
+                  "if (queryParams.sortBy !== undefined) {",
+                  "    pm.test('sortBy query param is not empty', () => {",
+                  "        pm.expect(String(queryParams.sortBy).trim()).to.not.be.empty;",
+                  "    });",
+                  "}",
+                  "",
+                  "if (queryParams.select !== undefined) {",
+                  "    pm.test('select query param is not empty', () => {",
+                  "        pm.expect(String(queryParams.select).trim()).to.not.be.empty;",
+                  "    });",
+                  "}",
+                  "",
+                  "if (queryParams.q !== undefined) {",
+                  "    pm.test('q query param is not empty', () => {",
+                  "        pm.expect(String(queryParams.q).trim()).to.not.be.empty;",
+                  "    });",
+                  "}",
+                  "",
+                  "if (queryParams.sortBy !== undefined && queryParams.order !== undefined) {",
+                  "    pm.test('sortBy and order are provided together for sorting', () => {",
+                  "        pm.expect(String(queryParams.sortBy).trim()).to.not.be.empty;",
+                  "        pm.expect(['asc', 'desc']).to.include(String(queryParams.order).toLowerCase());",
+                  "    });",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "let jsonData;",
+                  "let isJson = true;",
+                  "",
+                  "try {",
+                  "    jsonData = pm.response.json();",
+                  "} catch (e) {",
+                  "    isJson = false;",
+                  "    jsonData = null;",
+                  "}",
+                  "",
+                  "pm.test('Response time is below 1500 ms', () => {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});",
+                  "",
+                  "pm.test('Response body is valid JSON when expected', () => {",
+                  "    pm.expect(isJson, 'Response body should be valid JSON').to.eql(true);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Status code is 200', () => {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "",
+                  "    pm.test('Success response is a JSON object', () => {",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "    });",
+                  "",
+                  "    pm.test('Top-level products field is present as an array', () => {",
+                  "        pm.expect(jsonData).to.have.property('products');",
+                  "        pm.expect(jsonData.products).to.be.an('array');",
+                  "    });",
+                  "",
+                  "    pm.test('Top-level pagination fields are valid when present', () => {",
+                  "        if (jsonData.total !== undefined) {",
+                  "            pm.expect(jsonData.total).to.be.a('number');",
+                  "            pm.expect(jsonData.total).to.be.at.least(0);",
+                  "        }",
+                  "        if (jsonData.skip !== undefined) {",
+                  "            pm.expect(jsonData.skip).to.be.a('number');",
+                  "            pm.expect(jsonData.skip).to.be.at.least(0);",
+                  "        }",
+                  "        if (jsonData.limit !== undefined) {",
+                  "            pm.expect(jsonData.limit).to.be.a('number');",
+                  "            pm.expect(jsonData.limit).to.be.above(0);",
+                  "        }",
+                  "    });",
+                  "",
+                  "    pm.test('Products array is non-empty for current successful response', () => {",
+                  "        pm.expect(jsonData.products.length).to.be.above(0);",
+                  "    });",
+                  "",
+                  "    pm.test('Empty products array is allowed for pagination or search edge cases', () => {",
+                  "        pm.expect(jsonData.products).to.be.an('array');",
+                  "    });",
+                  "",
+                  "    const firstProduct = jsonData.products[0];",
+                  "",
+                  "    if (jsonData.products.length > 0) {",
+                  "        pm.test('First product has core functional fields', () => {",
+                  "            pm.expect(firstProduct).to.be.an('object');",
+                  "            pm.expect(firstProduct.id).to.be.a('number');",
+                  "            pm.expect(firstProduct.title).to.be.a('string');",
+                  "            pm.expect(firstProduct.title.trim()).to.not.be.empty;",
+                  "            pm.expect(firstProduct.price).to.be.a('number');",
+                  "            pm.expect(firstProduct.category).to.be.a('string');",
+                  "            pm.expect(firstProduct.category.trim()).to.not.be.empty;",
+                  "            pm.expect(firstProduct.stock).to.be.a('number');",
+                  "            pm.expect(firstProduct.thumbnail).to.be.a('string');",
+                  "            pm.expect(firstProduct.thumbnail).to.match(/^https?:\\/\\//);",
+                  "        });",
+                  "",
+                  "        const productSchema = {",
+                  "            type: 'object',",
+                  "            required: ['id', 'title', 'price', 'category', 'stock', 'thumbnail'],",
+                  "            properties: {",
+                  "                id: { type: 'number' },",
+                  "                title: { type: 'string' },",
+                  "                description: { type: 'string' },",
+                  "                category: { type: 'string' },",
+                  "                price: { type: 'number' },",
+                  "                discountPercentage: { type: 'number' },",
+                  "                rating: { type: 'number' },",
+                  "                stock: { type: 'number' },",
+                  "                brand: { type: 'string' },",
+                  "                sku: { type: 'string' },",
+                  "                weight: { type: 'number' },",
+                  "                thumbnail: { type: 'string', pattern: '^https?:\\\\/\\\\/' },",
+                  "                images: {",
+                  "                    type: 'array',",
+                  "                    items: { type: 'string' }",
+                  "                },",
+                  "                dimensions: {",
+                  "                    type: 'object',",
+                  "                    properties: {",
+                  "                        width: { type: 'number' },",
+                  "                        height: { type: 'number' },",
+                  "                        depth: { type: 'number' }",
+                  "                    }",
+                  "                },",
+                  "                meta: {",
+                  "                    type: 'object',",
+                  "                    properties: {",
+                  "                        createdAt: { type: 'string' },",
+                  "                        updatedAt: { type: 'string' },",
+                  "                        barcode: { type: 'string' },",
+                  "                        qrCode: { type: 'string' }",
+                  "                    }",
+                  "                },",
+                  "                reviews: {",
+                  "                    type: 'array',",
+                  "                    items: {",
+                  "                        type: 'object',",
+                  "                        properties: {",
+                  "                            rating: { type: 'number' },",
+                  "                            comment: { type: 'string' },",
+                  "                            date: { type: 'string' },",
+                  "                            reviewerName: { type: 'string' },",
+                  "                            reviewerEmail: { type: 'string' }",
+                  "                        }",
+                  "                    }",
+                  "                }",
+                  "            }",
+                  "        };",
+                  "",
+                  "        pm.test('First product schema is valid', () => {",
+                  "            pm.expect(firstProduct).to.have.jsonSchema(productSchema);",
+                  "        });",
+                  "    }",
+                  "",
+                  "    if (typeof jsonData.total === 'number' && typeof jsonData.skip === 'number' && typeof jsonData.limit === 'number') {",
+                  "        pm.test('Pagination values are internally consistent', () => {",
+                  "            pm.expect(jsonData.skip).to.be.at.least(0);",
+                  "            pm.expect(jsonData.limit).to.be.above(0);",
+                  "            pm.expect(jsonData.products.length).to.be.at.most(jsonData.limit);",
+                  "            pm.expect(jsonData.skip + jsonData.products.length).to.be.at.most(jsonData.total);",
+                  "        });",
+                  "    }",
+                  "}",
+                  "",
+                  "if ([400, 404].includes(pm.response.code)) {",
+                  "    pm.test('Negative response status is 400 or 404', () => {",
+                  "        pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+                  "    });",
+                  "",
+                  "    pm.test('Negative response contains error or message', () => {",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "        pm.expect(jsonData.error || jsonData.message).to.exist;",
+                  "        pm.expect(String(jsonData.error || jsonData.message).trim()).to.not.be.empty;",
+                  "    });",
+                  "",
+                  "    pm.test('Negative response does not expose products data', () => {",
+                  "        pm.expect(jsonData.products).to.not.exist;",
+                  "    });",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Product",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Single product status is 200', () => pm.response.to.have.status(200));","pm.test('Single product contract is valid', () => { pm.expect(body.id).to.be.a('number'); pm.expect(body.title).to.be.a('string').and.not.empty; pm.expect(body.price).to.be.a('number'); pm.environment.set('productId', String(body.id)); });"]}}],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Products",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","const searchTerm = pm.variables.replaceIn('{{searchTerm}}');","pm.test('Product search returns a product collection', () => { pm.response.to.have.status(200); pm.expect(body.products).to.be.an('array'); pm.expect(body).to.have.property('total').that.is.a('number'); });","pm.test('Search query is provided from test data', () => pm.expect(pm.request.url.query.get('q')).to.eql(searchTerm)); "]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/products/search?q={{searchTerm}}", "host": ["{{base_url}}"], "path": ["products", "search"], "query": [{"key":"q","value":"{{searchTerm}}"}] }
+          },
+          "response": []
+        },
+        {
+          "name": "Limit & Skip Products",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","const limit = Number(pm.request.url.query.get('limit'));","const skip = Number(pm.request.url.query.get('skip'));","pm.test('Product pagination contract is valid', () => { pm.response.to.have.status(200); pm.expect(body.products).to.be.an('array'); pm.expect(body.limit).to.eql(limit); pm.expect(body.skip).to.eql(skip); pm.expect(body.products.length).to.be.at.most(limit); });"]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/products?limit={{pageLimit}}&skip={{pageSkip}}", "host": ["{{base_url}}"], "path": ["products"], "query": [{"key":"limit","value":"{{pageLimit}}"},{"key":"skip","value":"{{pageSkip}}"}] }
+          },
+          "response": []
+        },
+        {
+          "name": "Sort Products",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Sorted products response contract is valid', () => { pm.response.to.have.status(200); pm.expect(body.products).to.be.an('array'); pm.expect(body.products.length).to.be.at.least(1); body.products.forEach((product) => { pm.expect(product).to.have.property('title').that.is.a('string').and.not.empty; }); });","pm.test('Sort query parameters are data-driven', () => { pm.expect(pm.request.url.query.get('sortBy')).to.eql(pm.variables.replaceIn('{{sortField}}')); pm.expect(pm.request.url.query.get('order')).to.eql(pm.variables.replaceIn('{{sortOrder}}')); });"]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?sortBy={{sortField}}&order={{sortOrder}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "{{sortField}}",
+                  "type": "text"
+                },
+                {
+                  "key": "order",
+                  "value": "{{sortOrder}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "All Products Categories",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Categories endpoint returns unique category objects', () => { pm.response.to.have.status(200); pm.expect(body).to.be.an('array').and.not.empty; pm.expect(body[0]).to.have.property('slug').that.is.a('string').and.not.empty; pm.expect(body[0]).to.have.property('name').that.is.a('string').and.not.empty; });"]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "All Products Category List",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Category list contains non-empty strings', () => { pm.response.to.have.status(200); pm.expect(body).to.be.an('array').and.not.empty; body.forEach((category) => pm.expect(category).to.be.a('string').and.not.empty); });"]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/category-list",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "category-list"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Product by Category",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","const category = pm.variables.replaceIn('{{category}}');","pm.test('Category search returns matching products', () => { pm.response.to.have.status(200); pm.expect(body.products).to.be.an('array'); body.products.forEach((product) => pm.expect(product.category).to.eql(category)); });","pm.test('Category filters are data-driven', () => { pm.expect(pm.request.url.query.get('tags')).to.eql(pm.variables.replaceIn('{{categoryTag}}')); pm.expect(pm.request.url.query.get('rating')).to.eql(pm.variables.replaceIn('{{ratingFilter}}')); });"]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/category/{{category}}?tags={{categoryTag}}&rating={{ratingFilter}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "category",
+                "{{category}}"
+              ],
+              "query": [
+                {
+                  "key": "tags",
+                  "value": "{{categoryTag}}",
+                  "type": "text"
+                },
+                {
+                  "key": "rating",
+                  "value": "{{ratingFilter}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add a new product",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Product is created', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));","pm.test('Created product has id and title', () => { pm.expect(body.id).to.be.a('number'); pm.expect(body.title).to.be.a('string').and.not.empty; pm.environment.set('createdProductId', String(body.id)); });"]}}],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"title\": \"Computer\",\r\n\"description\": \"A complete gaming computer with ryzen 8 with GPU\",\r\n\"category\": \"laptops\",\r\n\"price\": 20,\r\n\"discountPercentage\": 10,\r\n\"rating\": 4.00,\r\n\"stock\": 5,\r\n\"tags\": [\r\n    \"laptop\",\r\n    \"computer\"\r\n],\r\n\"brand\": \"Walton\",\r\n\"sku\": \"Wal-ton-POW-003\",\r\n\"weight\": 8,\r\n\"dimensions\": {\r\n    \"width\": 29.27,\r\n    \"height\": 27.93,\r\n    \"depth\": 20.59\r\n},\r\n\"warrantyInformation\": \"3 months warranty\",\r\n\"shippingInformation\": \"Ships in 1-2 business days\",\r\n\"availabilityStatus\": \"In Stock\",\r\n\"reviews\": [\r\n    {\r\n        \"rating\": 4,\r\n        \"comment\": \"Would buy again!\",\r\n        \"date\": \"2025-04-30T09:41:02.053Z\",\r\n        \"reviewerName\": \"Alexander Jones\",\r\n        \"reviewerEmail\": \"alexander.jones@x.dummyjson.com\"\r\n    },\r\n    {\r\n        \"rating\": 5,\r\n        \"comment\": \"Highly impressed!\",\r\n        \"date\": \"2025-04-30T09:41:02.053Z\",\r\n        \"reviewerName\": \"Elijah Cruz\",\r\n        \"reviewerEmail\": \"elijah.cruz@x.dummyjson.com\"\r\n    },\r\n    {\r\n        \"rating\": 1,\r\n        \"comment\": \"Very dissatisfied!\",\r\n        \"date\": \"2025-04-30T09:41:02.053Z\",\r\n        \"reviewerName\": \"Avery Perez\",\r\n        \"reviewerEmail\": \"avery.perez@x.dummyjson.com\"\r\n    }\r\n],\r\n\"returnPolicy\": \"No return policy\",\r\n\"minimumOrderQuantity\": 22,\r\n\"meta\": {\r\n    \"createdAt\": \"2025-04-30T09:41:02.053Z\",\r\n    \"updatedAt\": \"2025-04-30T09:41:02.053Z\",\r\n    \"barcode\": \"8418883906837\",\r\n    \"qrCode\": \"https://cdn.dummyjson.com/public/qr-code.png\"\r\n},\r\n\"images\": [\r\n    \"https://cdn.dummyjson.com/product-images/beauty/powder-canister/1.webp\"\r\n],\r\n\"thumbnail\": \"https://cdn.dummyjson.com/product-images/beauty/powder-canister/thumbnail.webp\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/products/add",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "add"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Product update returns the requested product', () => { pm.response.to.have.status(200); pm.expect(body.id).to.eql(Number(pm.variables.replaceIn('{{productId}}'))); pm.expect(body.title).to.eql('Essence Mascara'); pm.expect(body.price).to.eql(15.5); });"]}}],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\": \"Essence Mascara\",\r\n     \"price\": 15.5\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a Product",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Product deletion is confirmed', () => { pm.response.to.have.status(200); pm.expect(body.id).to.eql(Number(pm.variables.replaceIn('{{productId}}'))); pm.expect(body.isDeleted).to.eql(true); pm.expect(body.deletedOn).to.be.a('string').and.not.empty; });"]}}],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{productId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Carts",
+      "item": [
+        {
+          "name": "Get all carts",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Cart collection contract is valid', () => { pm.response.to.have.status(200); pm.expect(body.carts).to.be.an('array'); pm.expect(body.total).to.be.a('number'); body.carts.forEach((cart) => { pm.expect(cart.id).to.be.a('number'); pm.expect(cart.products).to.be.an('array'); }); });"]}}],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/carts", "host": ["{{base_url}}"], "path": ["carts"] } },
+          "response": []
+        },
+        {
+          "name": "single cart",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Single cart contract is valid', () => { pm.response.to.have.status(200); pm.expect(body.id).to.be.a('number'); pm.expect(body.userId).to.be.a('number'); pm.expect(body.products).to.be.an('array'); pm.expect(body.total).to.be.a('number'); });"]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/carts/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "carts",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "search cart by user",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","const userId = Number(pm.variables.replaceIn('{{userId}}'));","pm.test('User cart search returns only requested user carts', () => { pm.response.to.have.status(200); pm.expect(body.carts).to.be.an('array'); body.carts.forEach((cart) => pm.expect(cart.userId).to.eql(userId)); });"]}}],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/carts/user/{{userId}}", "host": ["{{base_url}}"], "path": ["carts", "user", "{{userId}}"] } },
+          "response": []
+        },
+        {
+          "name": "Filter Cart",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","const limit = Number(pm.request.url.query.get('limit'));","const skip = Number(pm.request.url.query.get('skip'));","pm.test('Cart pagination contract is valid', () => { pm.response.to.have.status(200); pm.expect(body.carts).to.be.an('array'); pm.expect(body.limit).to.eql(limit); pm.expect(body.skip).to.eql(skip); pm.expect(body.carts.length).to.be.at.most(limit); });"]}}],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/carts?limit=10&skip=0", "host": ["{{base_url}}"], "path": ["carts"], "query": [{"key":"limit","value":"10"},{"key":"skip","value":"0"}] } },
+          "response": []
+        },
+        {
+          "name": "Sort carts",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Carts are sorted by total descending', () => { pm.response.to.have.status(200); pm.expect(body.carts).to.be.an('array'); const totals = body.carts.map((cart) => cart.total); pm.expect(totals).to.eql([...totals].sort((a, b) => b - a)); });"]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/carts?sortBy=total&order=desc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "carts"
+              ],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "total",
+                  "type": "text"
+                },
+                {
+                  "key": "order",
+                  "value": "desc",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add a cart",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Cart is created', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));","pm.test('Created cart has id', () => { pm.expect(body.id).to.be.a('number'); pm.environment.set('cartId', String(body.id)); });"]}}],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"userId\":{{userId}},\"products\":[{\"id\":{{productId}},\"quantity\":1}]}", "options": { "raw": { "language": "json" } } },
+            "url": {
+              "raw": "{{base_url}}/carts/add",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "carts",
+                "add"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update a cart",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Cart update returns the requested cart', () => { pm.response.to.have.status(200); pm.expect(body.id).to.eql(Number(pm.variables.replaceIn('{{cartId}}'))); pm.expect(body.products).to.be.an('array').and.not.empty; pm.expect(body.products[0].id).to.eql(Number(pm.variables.replaceIn('{{productId}}'))); });"]}}],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \r\n  \"products\": [\r\n    {\r\n      \"id\": 1,\r\n      \"quantity\": 1\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/carts/{{cartId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "carts",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a cart",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Cart deletion is confirmed', () => { pm.response.to.have.status(200); pm.expect(body.id).to.eql(Number(pm.variables.replaceIn('{{cartId}}'))); pm.expect(body.isDeleted).to.eql(true); pm.expect(body.deletedOn).to.be.a('string').and.not.empty; });"]}}],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/carts/{{cartId}}", "host": ["{{base_url}}"], "path": ["carts", "{{cartId}}"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Negative & Boundary Tests",
+      "item": [
+        {
+          "name": "Invalid Login Credentials",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\"username\":\"invalid_user\",\"password\":\"invalid_password\"}","options":{"raw":{"language":"json"}}},
+            "url": {"raw":"{{base_url}}/auth/login","host":["{{base_url}}"],"path":["auth","login"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["let body; try { body = pm.response.json(); } catch (error) { body = null; }","pm.test('Invalid login is rejected', () => pm.expect(pm.response.code).to.be.oneOf([400, 401]));","pm.test('Invalid login does not return tokens', () => { pm.expect(body).to.be.an('object'); pm.expect(body.accessToken).to.not.exist; pm.expect(body.refreshToken).to.not.exist; });"]}}]
+        },
+        {
+          "name": "Unauthorized Profile Access",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"invalid-token","type":"string"}]},
+            "method": "GET",
+            "header": [],
+            "url": {"raw":"{{base_url}}/auth/me","host":["{{base_url}}"],"path":["auth","me"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["let body; try { body = pm.response.json(); } catch (error) { body = null; }","pm.test('Invalid token is rejected', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));","pm.test('Unauthorized response does not expose profile data', () => { pm.expect(body).to.be.an('object'); pm.expect(body.id).to.not.exist; pm.expect(body.username).to.not.exist; });"]}}]
+        },
+        {
+          "name": "Invalid Product ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw":"{{base_url}}/products/99999","host":["{{base_url}}"],"path":["products","99999"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["let body; try { body = pm.response.json(); } catch (error) { body = null; }","pm.test('Unknown product is rejected', () => pm.expect(pm.response.code).to.eql(404));","pm.test('Unknown product response contains an error message', () => { pm.expect(body).to.be.an('object'); pm.expect(body.message || body.error).to.be.a('string').and.not.empty; });"]}}]
+        },
+        {
+          "name": "Invalid Cart ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw":"{{base_url}}/carts/99999","host":["{{base_url}}"],"path":["carts","99999"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["let body; try { body = pm.response.json(); } catch (error) { body = null; }","pm.test('Unknown cart is rejected', () => pm.expect(pm.response.code).to.eql(404));","pm.test('Unknown cart response contains an error message', () => { pm.expect(body).to.be.an('object'); pm.expect(body.message || body.error).to.be.a('string').and.not.empty; });"]}}]
+        },
+        {
+          "name": "Minimum Product Page Boundary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw":"{{base_url}}/products?limit=1&skip=0","host":["{{base_url}}"],"path":["products"],"query":[{"key":"limit","value":"1"},{"key":"skip","value":"0"}]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Minimum page boundary is accepted', () => { pm.response.to.have.status(200); pm.expect(body.limit).to.eql(1); pm.expect(body.skip).to.eql(0); pm.expect(body.products).to.be.an('array').with.lengthOf(1); });"]}}]
+        },
+        {
+          "name": "Minimum Cart Quantity Boundary",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\"userId\":{{userId}},\"products\":[{\"id\":{{productId}},\"quantity\":1}]}","options":{"raw":{"language":"json"}}},
+            "url": {"raw":"{{base_url}}/carts/add","host":["{{base_url}}"],"path":["carts","add"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.test('Minimum cart quantity boundary is accepted', () => { pm.expect(pm.response.code).to.be.oneOf([200, 201]); pm.expect(body.products).to.be.an('array').and.not.empty; pm.expect(body.products[0].quantity).to.eql(1); });"]}}]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "searchTerm": "phone",
+    "pageLimit": "10",
+    "pageSkip": "0",
+    "sortField": "title",
+    "sortOrder": "asc",
+    "category": "smartphones",
+    "categoryTag": "apple",
+    "ratingFilter": "5"
+  },
+  {
+    "searchTerm": "laptop",
+    "pageLimit": "5",
+    "pageSkip": "0",
+    "sortField": "price",
+    "sortOrder": "desc",
+    "category": "laptops",
+    "categoryTag": "computer",
+    "ratingFilter": "4"
+  }
+]
