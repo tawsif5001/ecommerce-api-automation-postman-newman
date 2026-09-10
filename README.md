@@ -3,7 +3,7 @@
 [![API Testing](https://img.shields.io/badge/API%20Testing-Postman-orange?logo=postman)](https://www.postman.com/)
 [![Newman](https://img.shields.io/badge/Newman-CLI%20Runner-blue?logo=newman)](https://github.com/postmanlabs/newman)
 [![JavaScript](https://img.shields.io/badge/Test%20Scripts-JavaScript-yellow?logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![Execution](https://img.shields.io/badge/Execution-602%20Assertions%20%7C%200%20Failures-success)](reports/ecom-api-report.html)
+[![Execution](https://img.shields.io/badge/Execution-153%20Assertions%20%7C%204%20Failures-critical)](reports/ecom-api-report.html)
 [![Target API](https://img.shields.io/badge/Target-DummyJSON%20E--commerce-lightgrey)](https://dummyjson.com/)
 
 > A production-minded Postman and Newman API automation suite for validating authentication, product services, and shopping cart workflows against the DummyJSON e-commerce API.
@@ -16,7 +16,7 @@ The collection is organized around real API dependencies. Authentication runs fi
 
 ## 🧪 Quality Engineering Highlights
 
-- Reusable collection-level pre-request and test scripts
+- Request-level pre-request and test scripts on every endpoint
 - Authentication and bearer-token chaining
 - Response contract and JSON schema validation
 - Positive and negative response validation
@@ -73,7 +73,7 @@ Login
   -> Cart search, filters, sorting, CRUD
 ```
 
-Collection-level scripts provide shared quality gates. Request-level scripts add endpoint-specific assertions where the business response requires deeper validation.
+Each request contains its own pre-request and post-response scripts. Shared readiness and response-quality checks are materialized at request level so every endpoint exposes its complete script coverage directly in Postman.
 
 ## ✅ Assertion Strategy
 
@@ -111,7 +111,7 @@ Runtime tokens are generated during execution and should not be committed as per
 ```text
 .
 |-- eCom_Collection.postman_collection.json
-|   `-- Requests, scripts, assertions, and collection-level quality gates
+|   `-- Requests, request-level scripts, and assertions
 |-- eCom_Environment.postman_environment.json
 |   `-- Base URL, demo credentials, and runtime variables
 |-- data/
@@ -177,20 +177,27 @@ newman.cmd run .\eCom_Collection.postman_collection.json `
 
 ## 📊 Execution Evidence
 
-The included Newman run completed successfully:
+The latest Newman run completed with four assertion failures:
 
 | Metric | Result |
 |---|---:|
-| Iterations | 2 |
-| Requests executed | 56 |
-| Assertions | 602 |
-| Failed assertions | 0 |
-| Test scripts | 112 |
-| Pre-request scripts | 62 |
-| Average response time | 224 ms |
-| Total duration | 18.7 seconds |
+| Iterations | 1 |
+| Requests executed | 28 |
+| Assertions | 153 |
+| Failed assertions | 4 |
+| Test scripts | 28 |
+| Pre-request scripts | 28 |
+| Average response time | 495 ms |
+| Total duration | 16.7 seconds |
 
-Detailed report: [Open the Newman HTML report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/tawsif5001/ecommerce-api-automation-postman-newman/main/reports/ecom-api-report.html)
+Detailed report: [Open the Newman HTML report](reports/ecom-api-report.html)
+
+The current failures are:
+
+- Login response time exceeded the 1000 ms threshold.
+- Profile response time exceeded the 1000 ms threshold.
+- Cart update returned cart ID `1` instead of the requested ID `209`.
+- Cart deletion returned `404` instead of `200`.
 
 > Results can vary because the suite uses a public API and execution time depends on network and server conditions.
 
