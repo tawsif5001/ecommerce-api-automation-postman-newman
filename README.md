@@ -190,7 +190,7 @@ The included Newman run completed successfully:
 | Average response time | 224 ms |
 | Total duration | 18.7 seconds |
 
-Detailed report: [Open the Newman HTML report](reports/ecom-api-report.html)
+Detailed report: Detailed report: [Open the Newman HTML report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/tawsif5001/ecommerce-api-automation-postman-newman/main/reports/ecom-api-report.html)
 
 > Results can vary because the suite uses a public API and execution time depends on network and server conditions.
 
