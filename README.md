@@ -1,4 +1,4 @@
-# eCom API Automation Suite
+# 🛒 eCom API Automation Suite
 
 [![API Testing](https://img.shields.io/badge/API%20Testing-Postman-orange?logo=postman)](https://www.postman.com/)
 [![Newman](https://img.shields.io/badge/Newman-CLI%20Runner-blue?logo=newman)](https://github.com/postmanlabs/newman)
@@ -8,13 +8,13 @@
 
 > A production-minded Postman and Newman API automation suite for validating authentication, product services, and shopping cart workflows against the DummyJSON e-commerce API.
 
-## Overview
+## 📋 Overview
 
 This project demonstrates an end-to-end API quality engineering approach using Postman, JavaScript assertions, environment-driven configuration, response contract validation, and Newman reporting.
 
 The collection is organized around real API dependencies. Authentication runs first, generated credentials and tokens are captured, and downstream requests reuse runtime values such as `userId`, `productId`, and `cartId`. This makes the suite repeatable, maintainable, and suitable for local or CI execution.
 
-## Quality Engineering Highlights
+## 🧪 Quality Engineering Highlights
 
 - Reusable collection-level pre-request and test scripts
 - Authentication and bearer-token chaining
@@ -27,17 +27,16 @@ The collection is organized around real API dependencies. Authentication runs fi
 - Newman CLI execution with HTML reporting
 - Environment-based configuration without hardcoded runtime state
 
-## API Coverage
+## 🔌 API Coverage
 
-### Authentication and Profile
-
+### 🔐 Authentication and Profile
 - Login with access and refresh token validation
 - Refresh token workflow
 - Authenticated current-user profile request
 - Token and user ID extraction for downstream requests
 - Email, image URL, profile field, and schema assertions
 
-### Products
+### 🛍️ Products
 
 - Retrieve all products
 - Retrieve a single product
@@ -49,7 +48,7 @@ The collection is organized around real API dependencies. Authentication runs fi
 - Add, update, and delete products
 - Product field, URL, pagination, and schema assertions
 
-### Carts
+### 🛒 Carts
 
 - Retrieve all carts
 - Retrieve a single cart
@@ -59,7 +58,7 @@ The collection is organized around real API dependencies. Authentication runs fi
 - Cart collection contract validation
 - Chained user, product, and cart identifiers
 
-## Test Execution Flow
+## 🔄 Test Execution Flow
 
 ```text
 Login
@@ -76,7 +75,7 @@ Login
 
 Collection-level scripts provide shared quality gates. Request-level scripts add endpoint-specific assertions where the business response requires deeper validation.
 
-## Assertion Strategy
+## ✅ Assertion Strategy
 
 The suite validates API behavior at multiple levels:
 
@@ -90,7 +89,7 @@ The suite validates API behavior at multiple levels:
 | Performance baseline | Response-time threshold for every request |
 | Negative behavior | Error or message content for unsuccessful responses |
 
-## Chaining and Runtime Variables
+## 🔗 Chaining and Runtime Variables
 
 The collection stores values from successful responses and reuses them in dependent requests:
 
@@ -107,7 +106,7 @@ The collection stores values from successful responses and reuses them in depend
 
 Runtime tokens are generated during execution and should not be committed as permanent secrets.
 
-## Project Structure
+## 📁 Project Structure
 
 ```text
 .
@@ -125,14 +124,14 @@ Runtime tokens are generated during execution and should not be committed as per
 `-- README.md
 ```
 
-## Prerequisites
+## ⚙️ Prerequisites
 
 - Node.js and npm
 - Newman
 - `newman-reporter-htmlextra`
 - Internet access to `https://dummyjson.com`
 
-## Run with Postman
+🚀 Run with Postman
 
 1. Import `eCom_Collection.postman_collection.json`.
 2. Import `eCom_Environment.postman_environment.json`.
@@ -140,7 +139,7 @@ Runtime tokens are generated during execution and should not be committed as per
 4. Confirm that `base_url` points to the target API.
 5. Run the collection in the Postman Collection Runner.
 
-## Run with Newman
+🧰 Run with Newman
 
 Install Newman and the HTML reporter:
 
@@ -176,7 +175,7 @@ newman.cmd run .\eCom_Collection.postman_collection.json `
   --reporter-htmlextra-export .\reports\ecom-api-report.html
 ```
 
-## Execution Evidence
+## 📊 Execution Evidence
 
 The included Newman run completed successfully:
 
@@ -195,9 +194,9 @@ Detailed report: [Open the Newman HTML report](reports/ecom-api-report.html)
 
 > Results can vary because the suite uses a public API and execution time depends on network and server conditions.
 
-## Data-Driven, Iteration, and Performance Roadmap
+## 📈 Data-Driven, Iteration, and Performance Roadmap
 
-The suite now includes negative tests, boundary tests, business-rule validation, complete endpoint-specific assertions, and external JSON-driven Newman iterations. Recommended next steps for continued automation maturity are:
+The suite covers negative tests, boundary tests, business-rule validation, endpoint-specific assertions, and external JSON-driven Newman iterations. Recommended next steps for continued automation maturity are:
 
 - Add malformed payload and missing-field scenarios for mutation endpoints
 - Run controlled repeated iterations with `--iteration-count` alongside the data file
@@ -206,7 +205,7 @@ The suite now includes negative tests, boundary tests, business-rule validation,
 - Publish Newman reports as CI artifacts through GitHub Actions or Jenkins
 - Add pipeline quality gates for assertion failures and latency thresholds
 
-## Security and Maintenance Notes
+## 🔒 Security and Maintenance Notes
 
 - The included credentials are demo credentials for a public test API.
 - Never commit production credentials, API keys, or live tokens.
@@ -214,10 +213,10 @@ The suite now includes negative tests, boundary tests, business-rule validation,
 - Treat generated IDs and tokens as disposable runtime state.
 - Re-run the collection when the public API contract changes.
 
-## Portfolio Value
+## 💼 Project Context
 
-This project showcases practical SQA automation skills across API contract testing, authentication handling, dynamic data management, request chaining, CRUD validation, negative testing, performance baselining, command-line execution, and test reporting.
+This project focuses on API quality engineering using Postman, JavaScript, and Newman, with coverage across authentication, API contract validation, dynamic data management, request chaining, CRUD workflows, negative testing, performance baselining, command-line execution, and test reporting.
 
-## Author
+## 👨‍💻 Author
 
 API automation portfolio project built with Postman, JavaScript, and Newman.
