@@ -3,7 +3,7 @@
 [![API Testing](https://img.shields.io/badge/API%20Testing-Postman-orange?logo=postman)](https://www.postman.com/)
 [![Newman](https://img.shields.io/badge/Newman-CLI%20Runner-blue?logo=newman)](https://github.com/postmanlabs/newman)
 [![JavaScript](https://img.shields.io/badge/Test%20Scripts-JavaScript-yellow?logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![Execution](https://img.shields.io/badge/Execution-153%20Assertions%20%7C%204%20Failures-critical)](reports/ecom-api-report.html)
+[![Execution](https://img.shields.io/badge/Execution-730%20Assertions%20%7C%2010%20Failures-critical)](reports/ecom-api-report.html)
 [![Target API](https://img.shields.io/badge/Target-DummyJSON%20E--commerce-lightgrey)](https://dummyjson.com/)
 
 > A production-minded Postman and Newman API automation suite for validating authentication, product services, and shopping cart workflows against the DummyJSON e-commerce API.
@@ -181,23 +181,21 @@ The latest Newman run completed with four assertion failures:
 
 | Metric | Result |
 |---|---:|
-| Iterations | 1 |
-| Requests executed | 28 |
-| Assertions | 153 |
-| Failed assertions | 4 |
-| Test scripts | 28 |
-| Pre-request scripts | 28 |
-| Average response time | 495 ms |
-| Total duration | 16.7 seconds |
+| Iterations | 2 |
+| Requests executed | 56 |
+| Assertions | 730 |
+| Failed assertions | 10 |
+| Test scripts | 56 |
+| Pre-request scripts | 112 |
+| Average response time | 202 ms |
+| Total duration | 16.5 seconds |
 
 Detailed report: [Open the Newman HTML report](https://tawsif5001.github.io/ecommerce-api-automation-postman-newman/reports/ecom-api-report.html)
 
-The current failures are:
+The current failures occurred in both data-driven iterations:
 
-- Login response time exceeded the 1000 ms threshold.
-- Profile response time exceeded the 1000 ms threshold.
-- Cart update returned cart ID `1` instead of the requested ID `209`.
-- Cart deletion returned `404` instead of `200`.
+- Cart update returned cart ID `1` instead of the requested ID `209` (2 failures).
+- Cart deletion returned `404` instead of `200`, followed by missing deletion fields in the error response (8 failures).
 
 > Results can vary because the suite uses a public API and execution time depends on network and server conditions.
 
